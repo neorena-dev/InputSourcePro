@@ -21,6 +21,7 @@ struct ApplicationDetail: View {
     @State var doRestoreKeyboardState = NSToggleViewState.off
     @State var doNotRestoreKeyboardState = NSToggleViewState.off
     @State var hideIndicator = NSToggleViewState.off
+    @State var forceEnglishPunctuation = NSToggleViewState.off
 
     var mixed: Bool {
         Set(selectedApp.map { $0.forcedKeyboard?.id }).count > 1
@@ -106,10 +107,34 @@ struct ApplicationDetail: View {
                 }
             }
 
+            Divider()
+                .padding(.vertical, 4)
+
+            VStack(alignment: .leading) {
+                Text("Punctuation".i18n())
+                    .fontWeight(.medium)
+                HStack {
+                    Image(systemName: "textformat.abc")
+                        .foregroundColor(.orange)
+                    NSToggleView(
+                        label: "Force English Punctuation".i18n(),
+                        state: forceEnglishPunctuation,
+                        onStateUpdate: handleToggleForceEnglishPunctuation
+                    )
+                    .fixedSize()
+                }
+            }
+
             if selectedApp.contains(where: { preferencesVM.needDisplayEnhancedModePrompt(bundleIdentifier: $0.bundleId) }) {
                 Divider().padding(.vertical, 4)
 
                 EnhancedModeRequiredBadge()
+            }
+
+            if selectedApp.contains(where: { $0.forceEnglishPunctuation }) {
+                Divider().padding(.vertical, 4)
+
+                InputMonitoringRequiredBadge()
             }
 
             Spacer()
@@ -120,6 +145,7 @@ struct ApplicationDetail: View {
             updateDoRestoreKeyboardState()
             updateDoNotRestoreKeyboardState()
             updateHideIndicatorState()
+            updateForceEnglishPunctuationState()
         }
     }
 
@@ -160,6 +186,16 @@ struct ApplicationDetail: View {
             hideIndicator = .mixed
         } else {
             hideIndicator = stateSet.first == true ? .on : .off
+        }
+    }
+
+    func updateForceEnglishPunctuationState() {
+        let stateSet = Set(selectedApp.map { $0.forceEnglishPunctuation })
+
+        if stateSet.count > 1 {
+            forceEnglishPunctuation = .mixed
+        } else {
+            forceEnglishPunctuation = stateSet.first == true ? .on : .off
         }
     }
 
@@ -206,6 +242,19 @@ struct ApplicationDetail: View {
         case .off, .mixed:
             selectedApp.forEach { preferencesVM.setHideIndicator($0, true) }
             hideIndicator = .on
+            return .on
+        }
+    }
+
+    func handleToggleForceEnglishPunctuation() -> NSControl.StateValue {
+        switch forceEnglishPunctuation {
+        case .on:
+            selectedApp.forEach { preferencesVM.setForceEnglishPunctuation($0, false) }
+            forceEnglishPunctuation = .off
+            return .off
+        case .off, .mixed:
+            selectedApp.forEach { preferencesVM.setForceEnglishPunctuation($0, true) }
+            forceEnglishPunctuation = .on
             return .on
         }
     }
